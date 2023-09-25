@@ -1,19 +1,19 @@
-#include<Wire.h>//Biblioteca para comunicação I2C
-#include<Queue
 
-const int valorAtual = 0
+//Nicole Silva  
+//Modificações :  25/09/2023
+// Declarando filas e armamazenando valores nas mesmas.
+
+#include<Wire.h>//Biblioteca para comunicação I2C
+#include<queue> 
 
 const int MPU_addr=0x68; //Endereço do sensor
+int valorAtual = 0;
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ; //Variaveis para pegar os valores medidos
 
-
-int filaX[20];
-int filaY[20];
-int filaZ[20];
-
-
+queue <int> filaX, filaY, filaZ;
 
 void setup(){
+
   Wire.begin(); //Inicia a comunicação I2C
   Wire.beginTransmission(MPU_addr); //Começa a transmissao de dados para o sensor
   Wire.write(0x6B); // registrador PWR_MGMT_1
@@ -28,6 +28,7 @@ void setup(){
   Serial.begin(9600); //Inicia a comunicaçao serial (para exibir os valores lidos)
 }
 void loop(){
+
   Wire.beginTransmission(MPU_addr); //Começa a transmissao de dados para o sensor
   Wire.write(0x3B); // registrador dos dados medidos (ACCEL_XOUT_H)
   Wire.endTransmission(false);
@@ -41,18 +42,14 @@ void loop(){
   GyZ=Wire.read()<<8|Wire.read(); // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
 
   if (valorAtual <= 20){
-  int filaX[valorAtual] = AcX;
-  int filaY[valorAtual] = AcY;
-  int filaZ[valorAtual] = AcZ;
-  valorAtual++;
-  }
-  else{
+
+    filaX.push(AcX);
+    filaY.push(AcY);
+    filaZ.push(AcZ);
+
+    valorAtual++;
 
   }
-
-
-
-
 
 
   //Agora escreve os valores no monitor serial
