@@ -1,7 +1,6 @@
 
 //Nicole Silva  
 //Modificações :  25/09/2023
-// Declarando filas e armamazenando valores nas mesmas.
 
 #include<Wire.h>//Biblioteca para comunicação I2C
 #include<queue> 
