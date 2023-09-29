@@ -1,12 +1,19 @@
+// Codigo adaptado de: Usuário do Arduino JohnChi
+
 #include<Wire.h>//Biblioteca para comunicação I2C
 
 const int MPU_addr=0x68; //Endereço do sensor
-int valorAtual = 0;
+
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ; //Variaveis para pegar os valores medidos
 
+float AcnX, AcnY, AcnZ;
+
+
+float converteGravidade(int valor, int escala) {
+    return float(valor * escala) / 32768.00;
+}
 
 void setup(){
-
   Wire.begin(); //Inicia a comunicação I2C
   Wire.beginTransmission(MPU_addr); //Começa a transmissao de dados para o sensor
   Wire.write(0x6B); // registrador PWR_MGMT_1
@@ -15,13 +22,12 @@ void setup(){
 
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x1C); // Endereço do registrador de configuração do acelerômetro
-  Wire.write(0x18); // Valor para ±16g
-  Wire.endTransmission();
+  Wire.write(0x08); // Configurar para ±4g (veja o datasheet para outras opções)
+  Wire.endTransmission(true);
 
   Serial.begin(9600); //Inicia a comunicaçao serial (para exibir os valores lidos)
 }
 void loop(){
-
   Wire.beginTransmission(MPU_addr); //Começa a transmissao de dados para o sensor
   Wire.write(0x3B); // registrador dos dados medidos (ACCEL_XOUT_H)
   Wire.endTransmission(false);
@@ -33,18 +39,15 @@ void loop(){
   GyX=Wire.read()<<8|Wire.read(); // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
   GyY=Wire.read()<<8|Wire.read(); // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
   GyZ=Wire.read()<<8|Wire.read(); // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
-  
-if (AcX >= 14000 || AcX <= -14000){
-  Serial.println("Possivel Queda X");
-  Serial.println(AcX);
-}
-if (AcY >= 14000 || AcY <= -14000){
-  Serial.println("Possivel Queda Y");
-  Serial.println(AcY);
-}
-if (AcZ >= 14000 || AcZ <= -14000){
-  Serial.println("Possivel Queda Z");
-  Serial.println(AcZ);//
-}
 
+  AcnX = converteGravidade(AcX, 4);
+  AcnY = converteGravidade(AcY, 4);
+  AcnZ = converteGravidade(AcZ, 4);
+
+
+  //Agora escreve os valores no monitor serial
+  //Serial.print("AcX = "); Serial.println(AcnX);
+  Serial.print(" | AcY = "); Serial.println(AcnY);
+  //Serial.print(" | AcZ = "); Serial.println(AcnZ);
+  delay(20);
 }
