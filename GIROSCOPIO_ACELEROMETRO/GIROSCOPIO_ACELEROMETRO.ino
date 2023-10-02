@@ -8,9 +8,22 @@ int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ; //Variaveis para pegar os valores medidos
 
 float AcnX, AcnY, AcnZ;
 
+float Gx, Gy, Gz;
 
-float converteGravidade(int valor, int escala) {
-    return float(valor * escala) / 32768.00;
+float converteGravidade(int16_t valor, int16_t escala) {
+    float newValor = (int)valor;
+    float newEscala = (int)escala;
+    float resultado = (newValor * newEscala )/ 32768.00;
+    if (resultado <= 0){
+      return (resultado * -1);
+    }
+    else{
+      return resultado;
+    }
+}
+
+double gravidadeParaAceleracao(float valor){
+  return valor * 9.8;
 }
 
 void setup(){
@@ -40,14 +53,18 @@ void loop(){
   GyY=Wire.read()<<8|Wire.read(); // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
   GyZ=Wire.read()<<8|Wire.read(); // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
 
-  AcnX = converteGravidade(AcX, 4);
-  AcnY = converteGravidade(AcY, 4);
-  AcnZ = converteGravidade(AcZ, 4);
+  AcnX = converteGravidade(AcX, 4); // Valor de X em g
+  AcnY = converteGravidade(AcY, 4); // Valor de Y em g
+  AcnZ = converteGravidade(AcZ, 4); // Valor de Z em g
 
+  Gx = gravidadeParaAceleracao(AcnX); // Valor de X em m/s²
+  Gy = gravidadeParaAceleracao(AcnY); // Valor de Y em m/s²
+  Gz = gravidadeParaAceleracao(AcnZ); // Valor de Z em m/s²
 
-  //Agora escreve os valores no monitor serial
-  //Serial.print("AcX = "); Serial.println(AcnX);
-  Serial.print(" | AcY = "); Serial.println(AcnY);
-  //Serial.print(" | AcZ = "); Serial.println(AcnZ);
-  delay(20);
+  //Agora escreve os valores de Y no monitor serial
+  
+  Serial.print(" | AcY = "); Serial.print(AcY);
+  Serial.print(" | AcY m/s² = "); Serial.print(Gy);
+  Serial.print(" | AcnY = "); Serial.println(AcnY);
+  delay(200);
 }
