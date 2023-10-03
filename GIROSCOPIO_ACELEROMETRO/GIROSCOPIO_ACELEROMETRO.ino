@@ -1,6 +1,7 @@
-// Codigo adaptado de: Usuário do Arduino JohnChi
-
 #include<Wire.h>//Biblioteca para comunicação I2C
+#include<math.h> //Biblioteca de Calculos matematicos
+
+
 
 const int MPU_addr=0x68; //Endereço do sensor
 
@@ -9,6 +10,11 @@ int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ; //Variaveis para pegar os valores medidos
 float AcnX, AcnY, AcnZ;
 
 float Gx, Gy, Gz;
+
+double magnitudeVetorial (float x, float y, float z){
+  double valor = sqrt(x*x + y*y + z*z);
+  return valor;
+}
 
 float converteGravidade(int16_t valor, int16_t escala) {
     float newValor = (int)valor;
@@ -61,10 +67,13 @@ void loop(){
   Gy = gravidadeParaAceleracao(AcnY); // Valor de Y em m/s²
   Gz = gravidadeParaAceleracao(AcnZ); // Valor de Z em m/s²
 
+  double magnitude = magnitudeVetorial(AcnX, AcnY, AcnZ);
+
   //Agora escreve os valores de Y no monitor serial
   
-  Serial.print(" | AcY = "); Serial.print(AcY);
-  Serial.print(" | AcY m/s² = "); Serial.print(Gy);
-  Serial.print(" | AcnY = "); Serial.println(AcnY);
+  //Serial.print(" | AcZ = "); Serial.print(AcZ);
+  //Serial.print(" | m/s² = "); Serial.print(Gz);
+  //Serial.print(" | g = "); Serial.println(AcnZ);
+  Serial.print("Magnitude = ");Serial.println(magnitude);
   delay(200);
 }
