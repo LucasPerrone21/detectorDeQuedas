@@ -1,15 +1,27 @@
+// Transmissor
+
+#include <SPI.h>
+#include <LoRa.h>
 #include<Wire.h>//Biblioteca para comunicação I2C
 #include<math.h> //Biblioteca de Calculos matematicos
 
+// Definição de pinos
+#define pinRX 7
+#define pintTX 8
+
+// Definições gerais
+#define alerta "Detectamos uma queda"
+#define confirmacao "Alerta gerado"
 
 
+// Declaração de constantes
 const int MPU_addr=0x68; //Endereço do sensor
-
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ; //Variaveis para pegar os valores medidos
-
 float AcnX, AcnY, AcnZ;
-
 float Gx, Gy, Gz;
+double arimaValue = 1.01;
+
+// Funções de uso importante
 
 double magnitudeVetorial (float x, float y, float z){
   double valor = sqrt(x*x + y*y + z*z);
@@ -32,7 +44,25 @@ double gravidadeParaAceleracao(float valor){
   return valor * 9.8;
 }
 
+double filtroArimaPrimeiraOrdem(double valor){
+  arimaValue = 0.9 * arimaValue + (1 - 0.9) * valor;
+  return arimaValue;
+}
+
 void setup(){
+
+    // Testando se a comunicação está sendo feita
+	while(!Serial){
+
+    Serial.println("Transmissor LoRa");
+
+	  if(!LoRa.begin(433E6)){  //Frequencia de Operacao (ou 915E6)
+		  Serial.println("Falha ao Iniciar o Lora!");
+		  while(1);
+	
+	  }
+
+  }
   Wire.begin(); //Inicia a comunicação I2C
   Wire.beginTransmission(MPU_addr); //Começa a transmissao de dados para o sensor
   Wire.write(0x6B); // registrador PWR_MGMT_1
@@ -45,8 +75,13 @@ void setup(){
   Wire.endTransmission(true);
 
   Serial.begin(9600); //Inicia a comunicaçao serial (para exibir os valores lidos)
+	  
 }
+
 void loop(){
+
+	LoRa.beginPacket(); // Inicia transmissão do pacote
+
   Wire.beginTransmission(MPU_addr); //Começa a transmissao de dados para o sensor
   Wire.write(0x3B); // registrador dos dados medidos (ACCEL_XOUT_H)
   Wire.endTransmission(false);
@@ -63,17 +98,38 @@ void loop(){
   AcnY = converteGravidade(AcY, 4); // Valor de Y em g
   AcnZ = converteGravidade(AcZ, 4); // Valor de Z em g
 
-  Gx = gravidadeParaAceleracao(AcnX); // Valor de X em m/s²
-  Gy = gravidadeParaAceleracao(AcnY); // Valor de Y em m/s²
-  Gz = gravidadeParaAceleracao(AcnZ); // Valor de Z em m/s²
+  AcnX = gravidadeParaAceleracao(AcnX); // Valor de X em m/s²
+  AcnY = gravidadeParaAceleracao(AcnY); // Valor de Y em m/s²
+  AcnZ = gravidadeParaAceleracao(AcnZ); // Valor de Z em m/s²
+  if( (AcnX > AcnY ) && (AcnX > AcnZ)){
+    AcnX = AcnX - 10;
+  }
+  else if ((AcnY > AcnX ) && (AcnY > AcnZ)){
+    AcnY = AcnY - 10;
+  }
+  else if ((AcnZ > AcnX ) && (AcnZ > AcnY)){
+    AcnZ = AcnZ - 10;
+  }
 
   double magnitude = magnitudeVetorial(AcnX, AcnY, AcnZ);
 
-  //Agora escreve os valores de Y no monitor serial
-  
-  //Serial.print(" | AcZ = "); Serial.print(AcZ);
-  //Serial.print(" | m/s² = "); Serial.print(Gz);
-  //Serial.print(" | g = "); Serial.println(AcnZ);
-  Serial.print("Magnitude = ");Serial.println(magnitude);
-  delay(200);
+  double valorFinal =filtroArimaPrimeiraOrdem(magnitude);
+
+	if(valorFinal >= 9.8 ){  //Condição que verifica se a queda ocorreu
+ 
+		Serial.print("Queda Detectada = ");Serial.println(valorFinal);
+		LoRa.print(confirmacao);
+		
+	}
+
+	if(LoRa.available()){
+		
+		String recebido = LoRa.readString();
+		Serial.println(recebido);
+
+		if(recebido == confirmacao){
+			LoRa.endPacket();
+		}
+	}
+
 }
